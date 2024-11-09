@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Create Apache Config
+#
+# This script creates the Apache configuration given a string of redirects / rules. If no output path is provided, config is written to `./httpd.conf`.
+#
+# Usage:
+#   REDIRECTS="/path1,/target1,301;/path2,/target2,302" && ./create-apache-config [output_path]
+#
+# @author    Dennis Gilli <me@dennisgilli.com>
+# @copyright Copyright (c) 2024 Dennis Gilli
+# @link      https://dennisgilli.com/
+# @license   MIT
+
+OUTPUT_PATH=${1:-"./httpd.conf"}
+
+echo "# Apache Configuration with Redirects" > "$OUTPUT_PATH"
+echo "LoadModule rewrite_module modules/mod_rewrite.so" >> "$OUTPUT_PATH"
+echo "<VirtualHost *:80>" >> "$OUTPUT_PATH"
+
+# Parse the REDIRECTS environment variable
+IFS=';' # Semicolon separates each redirect
+for rule in $REDIRECTS; do
+    # Split each rule into components
+    path=$(echo "$rule" | cut -d',' -f1)
+    target=$(echo "$rule" | cut -d',' -f2)
+    type=$(echo "$rule" | cut -d',' -f3)
+
+    if [ "$type" = "301" ]; then
+        printf "\tRedirect permanent %s %s\n" "$path" "$target" >> "$OUTPUT_PATH"
+    elif [ "$type" = "302" ]; then
+        printf "\tRedirect temp %s %s\n" "$path" "$target" >> "$OUTPUT_PATH"
+    fi
+done
+
+echo "</VirtualHost>" >> "$OUTPUT_PATH"
